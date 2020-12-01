@@ -2,7 +2,28 @@
 from kazoo.client import KazooClient
 
 import yaml,logging,time,random
+import numpy as np
 
+def mandelbrot_set(width, height, startRow, endRow, zoom=1, x_off=0, y_off=0, niter=256):
+    w,h = width, height
+    pixels = np.arange(w*(endRow - startRow), dtype=np.uint16).reshape(endRow - startRow, w)
+
+    for x in range(w): 
+        zx = 1.5*(x + x_off - 3*w/4)/(0.5*zoom*w)
+        for y in range(startRow, endRow):
+            
+            zy = 1.0*(y + y_off - h/2)/(0.5*zoom*h)
+            
+            z = complex(zx, zy)
+            c = complex(0, 0)
+            
+            for i in range(niter):
+                if abs(c) > 4: break
+                c = c**2 + z
+
+            color = (i << 21) + (i << 10)  + i * 8
+            pixels[y - startRow][x] = color
+    return pixels
 
 def register():
     global myid, host
@@ -16,15 +37,22 @@ def register():
 def process():
     global myid, host
     rowsQueue = zk.LockingQueue("/rowsQueue")
-    while rowsQueue.__len__() != 0 :
-        v = rowsQueue.get(timeout=3)
+    # while rowsQueue.__len__() != 0 :
+        # v = rowsQueue.get(timeout=3)
+    while True :
+        v = rowsQueue.get()
         if v is None:
             logger.info('Get task time out')
             break
-        info = f'{myid} takes ' + v.decode("utf-8") 
-        logger.info(info)
-        zk.set("/app" , info.encode("utf-8"))
-        # time.sleep(float(random.randint(0,2)))
+        task = v.decode("utf-8")
+        logger.info(f'{myid} get task: {task}')
+        rows = task.split(':')
+        startRow = int(rows[0])
+        endRow = int(rows[1])
+        width = 1024
+        height = 768
+        pixels = mandelbrot_set(width, height, startRow, endRow)
+        zk.create(f"/data/{task}", pixels.tobytes(), makepath=True)
         rowsQueue.consume()
     if rowsQueue.__len__() == 0:
         logger.info('Task Queue is now empty')

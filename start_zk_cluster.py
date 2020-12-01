@@ -54,6 +54,7 @@ for idx in range(1, instance_count + 1):
     # c.sudo(f'apt-get update')
     # c.sudo(f'apt-get install python-is-python3 python3-pip -y')
     # c.sudo(f'pip3 install kazoo')
+    # c.sudo(f'pip3 install numpy matplotlib')
     # c.sudo(f'apt install -y openjdk-11-jdk')
 
     c.run('export JAVA_HOME=/usr/lib/jvm/java-1.11.0-openjdk-amd64')
