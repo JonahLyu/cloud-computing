@@ -34,7 +34,7 @@ for idx in range(1, instance_count + 1):
     pub_ip = ip_pair[0]
     print (f'connecting to {pub_ip}')
     c = Connection(f'ubuntu@{pub_ip}', connect_kwargs={'key_filename': config['ssh_path']})
-    
+
     c.put(local="task.py", remote="/home/ubuntu/task.py")
     c.sudo(f'python /home/ubuntu/task.py 2>error.log >out.log &', warn=True)
 

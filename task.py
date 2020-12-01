@@ -36,25 +36,23 @@ def register():
 
 def process():
     global myid, host
-    rowsQueue = zk.LockingQueue("/rowsQueue")
-    # while rowsQueue.__len__() != 0 :
-        # v = rowsQueue.get(timeout=3)
+    taskQueue = zk.LockingQueue("/taskQueue")
+    # while taskQueue.__len__() != 0 :
+        # v = taskQueue.get(timeout=3)
     while True :
-        v = rowsQueue.get()
+        v = taskQueue.get()
         if v is None:
             logger.info('Get task time out')
             break
         task = v.decode("utf-8")
         logger.info(f'{myid} get task: {task}')
-        rows = task.split(':')
-        startRow = int(rows[0])
-        endRow = int(rows[1])
-        width = 1024
-        height = 768
-        pixels = mandelbrot_set(width, height, startRow, endRow)
-        zk.create(f"/data/{task}", pixels.tobytes(), makepath=True)
-        rowsQueue.consume()
-    if rowsQueue.__len__() == 0:
+        params = task.split(':')
+        width, height, zoom = int(params[0]),int(params[1]),float(params[2])
+        startRow, endRow = int(params[3]), int(params[4])
+        pixels = mandelbrot_set(width, height, startRow, endRow, zoom)
+        zk.create(f"/data/{startRow}:{endRow}", pixels.tobytes(), makepath=True)
+        taskQueue.consume()
+    if taskQueue.__len__() == 0:
         logger.info('Task Queue is now empty')
     else:
         logger.info('Unexpected break from while loop')

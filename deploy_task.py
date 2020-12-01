@@ -23,7 +23,7 @@ pixels = []
 sliceNum = 12
 width = 1024
 height = 768
-zoom = 1.0
+zoom = 1.2
 
 
 # watch the server status
@@ -35,7 +35,7 @@ def watch_server(servers):
 def creatTask(sliceNum, width,height, zoom):
     global pixels
     pixels = np.arange(width*height, dtype=np.uint16).reshape(height, width)
-    rowsQueue = zk.LockingQueue("/rowsQueue")
+    taskQueue = zk.LockingQueue("/taskQueue")
     allRows = []
     for i in range(sliceNum):
         startRow = (height // sliceNum) * i
@@ -43,12 +43,13 @@ def creatTask(sliceNum, width,height, zoom):
             endRow = (height // sliceNum) * (i + 1) + height % sliceNum
         else:
             endRow = (height // sliceNum) * (i + 1)
-        task = f'{startRow}:{endRow}'
+        task = f'{width}:{height}:{zoom}:{startRow}:{endRow}'
         allRows.append(task.encode("utf-8"))
     print("deploy tasks: ", sliceNum)
-    rowsQueue.put_all(allRows)
+    taskQueue.put_all(allRows)
 
 creatTask(sliceNum, width, height, zoom)
+start = time.time()
 
 # watch the app data status
 @zk.ChildrenWatch("/data")
@@ -56,8 +57,8 @@ def watch_slice(slices):
     global pixels, count, width
     for key in slices: 
         data, _ = zk.get(f"/data/{key}")
-        rows = key.split(':')
-        startRow,  endRow= int(rows[0]), int(rows[1])
+        params = key.split(':')
+        startRow,  endRow= int(params[0]), int(params[1])
         pixelSlice = np.frombuffer(data, dtype=np.uint16).reshape(endRow-startRow,width)
         pixels[startRow:endRow] = pixelSlice
         zk.delete(f"/data/{key}")
@@ -65,7 +66,7 @@ def watch_slice(slices):
         print(f'{key} finished {count}/{sliceNum}')
 
 
-start = time.time()
+
 while count < sliceNum:
     pass
 end = time.time()

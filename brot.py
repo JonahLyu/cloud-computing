@@ -35,7 +35,7 @@ def display(width=1024, height=768, zoom=1.0, x_off=0, y_off=0, cmap='viridis'):
 import time
 start = time.time()
 
-display(width=1024, height=768, zoom=1.0)
+display(width=1024, height=768, zoom=2.0)
 
 end = time.time()
 print(end - start)
