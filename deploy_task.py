@@ -35,6 +35,7 @@ rowsQueue.put_all(allRows)
 def watch_server(servers):
     print("servers are %s" % servers)
 
+# watch the app data status
 @zk.DataWatch("/app")
 def watch_node(data, stat):
     if data is not None:
