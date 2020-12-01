@@ -1,0 +1,8 @@
+# list your hosts here
+hosts:
+  54.165.100.175: 172.31.27.220
+  54.161.46.71: 172.31.26.48
+  54.224.219.215: 172.31.28.236
+
+
+ssh_path: /Users/bytedance/zookeepertest.pem
