@@ -1,11 +1,9 @@
-import fabric
-import jinja2
 import yaml
 import numpy as np
 
 
 with open('config.yaml') as f:
-    config = yaml.load(f)
+    config = yaml.load(f, Loader=yaml.FullLoader)
 
 # start watching
 from kazoo.client import KazooClient

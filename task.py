@@ -24,7 +24,7 @@ def process():
         info = f'{myid} takes ' + v.decode("utf-8") 
         logger.info(info)
         zk.set("/app" , info.encode("utf-8"))
-        time.sleep(float(random.randint(0,2)))
+        # time.sleep(float(random.randint(0,2)))
         rowsQueue.consume()
     if rowsQueue.__len__() == 0:
         logger.info('Task Queue is now empty')
