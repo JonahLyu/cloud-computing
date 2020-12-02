@@ -25,23 +25,24 @@ class Worker:
     # do something upon the change on assignment
     def assignment_change(self, atask, stat):
         if atask and not atask.decode("utf-8") == "non" :
+            atask = atask.decode("utf-8")
             #4.5. get task id uppon assignment in workers, get task data in data/yyy
-            data_path = DATA_PATH + atask
+            data_path = f'{DATA_PATH}/{atask}'
             if self.zk.exists(data_path) :
-                data = self.zk.get(data_path)
+                data, _ = self.zk.get(data_path)
                 #6. execute task with data
                 time.sleep(1)
-                result = data
-                task_path = TASKS_PATH + atask
-                task_val = atask + "=" + str(result)
+                result = data.decode("utf-8")
+                task_path = f'{TASKS_PATH}/{atask}'
+                task_val = atask + "#" + result
                 # set result in task - task completion
                 if self.zk.exists(task_path) :
-                    zk.set(task_path, task_val)
+                    zk.set(task_path, task_val.encode('utf-8'))
                     print("Worker completed task %s with result %s" %(atask, result))
                 else :
                     print("Task %s not found, maybe the connection  was lost" %(task_path))
                 #7. delete assignment
-                zk.set(self.path, "non")
+                zk.set(self.path, b"non")
 
 if __name__ == '__main__':
     zk = server.init()    

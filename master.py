@@ -16,47 +16,49 @@ class Master:
         my_path = zk.create(ELECTION_PATH + '/id_', ephemeral=True, sequence=True)
         self.election = Election(zk, ELECTION_PATH, my_path)
         self.election.ballot(self.zk.get_children(ELECTION_PATH))
-        zk.ChildrenWatch(WORKERS_PATH, self.assign, send_event=True)
-        zk.ChildrenWatch(TASKS_PATH, self.assign, send_event=True)
+        zk.ChildrenWatch(WORKERS_PATH, self.distribute_task, send_event=True)
+        zk.ChildrenWatch(TASKS_PATH, self.distribute_task, send_event=True)
 
     def compute_free_worker(self):
         workers = self.zk.get_children(WORKERS_PATH)
-        found_worker = False
         if not workers == None : 
             for i in range(0, len(workers)) :
-                worker_path = WORKERS_PATH + workers[i]
-                val = self.zk.get(worker_path)
+                worker_path = f'{WORKERS_PATH}/{workers[i]}'
+                val, _ = self.zk.get(worker_path)
                 # Check if no task is assigned to the worker
-                if ("non" in val) :
-                    found_worker = True
+                if ("non" in val.decode("utf-8")) :
                     return  workers[i]
         return None
 
     #assign tasks 				   
-    def assign(self, children, event):
+    def distribute_task(self, children, event):
         if self.election.is_master_server():
             if(event) :
        	        print("Change happened with event  = %s" %(event.type))
             tasks = self.zk.get_children(TASKS_PATH) #get all tasks
             for i in range(0,len(tasks)) :
-                task_path = TASKS_PATH + tasks[i]
-                task_data = self.zk.get(task_path)
-                if ("," not in task_data) : # not assigned
+                task_path = f'{TASKS_PATH}/{tasks[i]}'
+                task_raw_data, _ = self.zk.get(task_path)
+                task_data = ''
+                if task_raw_data is not None:
+                    task_data = task_raw_data.decode("utf-8")
+                if ("#" not in task_data) : # not assigned
                     free_worker = self.compute_free_worker()
+                    print("found free worker: %s" % free_worker)
                     if not free_worker == None :
-                        worker_path = WORKERS_PATH + free_worker
+                        worker_path = f'{WORKERS_PATH}/{free_worker}'
                         print("Assigned worker = %s to task = %s" %(free_worker, tasks[i]))
-                        new_task_data = []
-                        new_task_data.append(task_data)
-                        new_task_data.append(",")
-                        new_task_data.append(free_worker)
-                        self.zk.set(task_path, str(new_task_data))
-                        self.zk.set(worker_path, str(tasks[i]))
-                        self.zk.get(worker_path, self.finished_task)
+                        new_task_data = f'{task_data}#{free_worker}'
+                        self.zk.set(task_path, new_task_data.encode("utf-8"))
+                        self.zk.set(worker_path, tasks[i].encode("utf-8"))
+                        self.zk.get(worker_path, self.task_complete)
 			
-    def finished_task(self, data) :
-        if data and data == "non" : # Worker completed its task
-            self.assign(data)
+    def task_complete(self, event) :
+        # a worker finished a task
+        data, _ = zk.get(event.path)
+        if data is not None: 
+            if data.decode("utf-8") == "non":
+                print("complete task: %s" % data.decode("utf-8"))
 				
                 
 if __name__ == '__main__':
