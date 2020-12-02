@@ -10,7 +10,7 @@ class Election:
         self.election_path = election_path
         self.zk = zk
         self.is_leader = False
-        self.child_id = self_path.split("/")[2]
+        self.child_id = self_path.split("/")[1]
         self.path = self_path
         self.leader_path = None
         self.kill_now =  False
@@ -33,51 +33,36 @@ class Election:
             
 	#perform a vote..	
     def ballot(self,children):
-        next_master = min(children)
+        next_master = min(children)  #choose the minimum one as master
         master_path = self.election_path + "master_current/"
-        self.zk.ensure_path(master_path)
-        self.leader_path = master_path + next_master
+        self.zk.ensure_path(master_path) #creat master_path znode if it doesn't exist
+        self.leader_path = master_path + next_master #/master/master_current/id_123
         if(self.child_id == next_master) :
             self.zk.create(self.leader_path, ephemeral=True) 
-            print("I'm the leader now")
             self.is_leader = True
             return True
         else:
             print ("Master is = %s " %(self.leader_path)) 
-            self.zk.exists(self.leader_path, self.on_node_delete) 
+            self.zk.exists(self.leader_path, self.on_node_delete) #watch the master delete event
             self.is_leader = False
             return False
 
-def leader_func():
-	print("I am the leader now")
 
-def my_listener(state):
-    if state == KazooState.LOST:
-        # Register somewhere that the session was lost
-        logging.info('Session lost')
-    elif state == KazooState.SUSPENDED:
-        # Handle being disconnected from Zookeeper
-        logging.info('Disconnected')        
-    else:
-        # Handle being connected/reconnected to Zookeeper
-        logging.info('Connected')
                     
 if __name__ == '__main__':
     zkhost = "127.0.0.1:2181" #default ZK host
     logging.basicConfig(format='%(asctime)s %(message)s',level=logging.DEBUG)
-    if len(sys.argv) == 2:
-        zkhost=sys.argv[2]
-        print("Using ZK at %s"%(zkhost))
     zk = KazooClient(zkhost) 
-    zk.add_listener(my_listener)
     zk.start()
    
-    master_path = MASTER_PATH + "guid_"
+    master_path = MASTER_PATH + "/id_"
     child = zk.create(master_path, ephemeral=True, sequence=True)
     election = Election(zk, MASTER_PATH, child)
 
     if election.ballot(zk.get_children(MASTER_PATH)) == False :
 	    print("I'm a worker")
+    else :
+        print("I'm the leader now")
 
     while (election.kill_now == False) :
         time.sleep(1)
