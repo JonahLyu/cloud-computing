@@ -5,46 +5,52 @@ from election import Election
 import server
 ELECTION_PATH="/master"
 TASKS_PATH="/tasks"
-DATA_PATH="/data"
+PARAMS_PATH="/params"
 WORKERS_PATH="/workers"
+STATUS_PATH="/status"
+RESULTS_PATH="/results"
 
 class Worker:
 
     def __init__(self,zk):
         self.zk = zk
-        #1.choose a random id
-        self.uuid = uuid.uuid4()
-        self.path = f'{WORKERS_PATH}/{self.uuid}'
+        #generate random worker id
+        self.workerID = uuid.uuid4()
+        self.workerPath = f'{WORKERS_PATH}/{self.workerID}'
+        self.statusPath = f'{STATUS_PATH}/{self.workerID}'
         #2.create znode
-        self.worker_id = zk.create(self.path, ephemeral=True)
-        zk.set(self.worker_id, b"non")
-        print("Worker %s  created!" %(self.worker_id))
+        zk.ensure_path(self.statusPath) # permanent status path
+        zk.set(self.statusPath, b"non")
+        zk.create(self.workerPath, b"non", ephemeral=True)
+        print("Worker %s  created!" %(self.workerPath))
         #3.watch znode
-        zk.DataWatch(self.path, self.assignment_change)   
+        zk.DataWatch(self.statusPath, self.assignment_change)   
     
     # do something upon the change on assignment
-    def assignment_change(self, atask, stat):
-        if atask and not atask.decode("utf-8") == "non" :
-            atask = atask.decode("utf-8")
-            #4.5. get task id uppon assignment in workers, get task data in data/yyy
-            data_path = f'{DATA_PATH}/{atask}'
-            if self.zk.exists(data_path) :
-                data, _ = self.zk.get(data_path)
+    def assignment_change(self, taskID, stat):
+        if taskID is not None and taskID.decode("utf-8") != "non":
+            taskID = taskID.decode("utf-8")
+            print("Worker recieved task %s" % taskID) 
+            #4.5. get the parameters of the task
+            paramPath = f'{PARAMS_PATH}/{taskID}'
+            if self.zk.exists(paramPath) :
+                data, _ = self.zk.get(paramPath)
                 #6. execute task with data
-                time.sleep(1)
                 result = data.decode("utf-8")
-                task_path = f'{TASKS_PATH}/{atask}'
-                task_val = atask + "#" + result
+                time.sleep(10)
+                taskPath = f'{TASKS_PATH}/{taskID}'
+                resultPath = f'{RESULTS_PATH}/{taskID}'
                 # write result back to task
-                if self.zk.exists(task_path) :
-                    zk.set(task_path, task_val.encode('utf-8'))
+                if self.zk.exists(taskPath) and self.zk.exists(resultPath) :
+                    zk.set(resultPath, result.encode("utf-8"))
+                    zk.set(taskPath, b"complete")
                     #free this worker
-                    zk.set(self.path, b"non")
-                    print("Worker completed task %s with result %s" %(atask, result))
+                    zk.set(self.statusPath, b"non")
+                    print("Worker completed task %s" % taskID)
                 else :
                     #free this worker
-                    zk.set(self.path, b"non")
-                    print("Task %s not found, maybe the connection  was lost" %(task_path))
+                    zk.set(self.statusPath, b"non")
+                    print("Task %s not found, maybe the connection  was lost" %(resultPath))
 
 if __name__ == '__main__':
     zk = server.init()    
