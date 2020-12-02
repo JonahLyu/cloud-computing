@@ -20,7 +20,7 @@ zk = KazooClient(hosts=f'{cluster_ip}:2181')
 zk.start()
 count = 0
 pixels = []
-sliceNum = 12
+sliceNum = 9
 width = 1024
 height = 768
 zoom = 1.2
