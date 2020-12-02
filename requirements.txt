@@ -1,4 +1,4 @@
-fabric2
+fabric
 jinja2
 pyyaml
 kazoo

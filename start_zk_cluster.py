@@ -58,4 +58,5 @@ for idx in range(1, instance_count + 1):
     # c.sudo(f'apt install -y openjdk-11-jdk')
 
     c.run('export JAVA_HOME=/usr/lib/jvm/java-1.11.0-openjdk-amd64')
+    c.sudo('''kill $(sudo ps -ef | grep zookeeper | awk '{print $2}')''', warn=True)
     c.sudo('/usr/local/zookeeper/bin/zkServer.sh start')

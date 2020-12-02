@@ -13,6 +13,7 @@ instance_count = len(hosts)
 
 # let range run from 1 to n!
 for idx in range(1, instance_count + 1):
+    print(f'---- {idx} ---')
     ip_pair = hosts[idx - 1]
     pub_ip = ip_pair[0]
     print (f'connecting to {pub_ip}')
