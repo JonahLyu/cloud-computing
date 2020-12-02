@@ -58,7 +58,7 @@ class Master:
         data, _ = zk.get(event.path)
         if data is not None: 
             if data.decode("utf-8") == "non":
-                print("complete task: %s" % data.decode("utf-8"))
+                print("worker task complete: %s" % event.path)
 				
                 
 if __name__ == '__main__':

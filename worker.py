@@ -35,14 +35,16 @@ class Worker:
                 result = data.decode("utf-8")
                 task_path = f'{TASKS_PATH}/{atask}'
                 task_val = atask + "#" + result
-                # set result in task - task completion
+                # write result back to task
                 if self.zk.exists(task_path) :
                     zk.set(task_path, task_val.encode('utf-8'))
+                    #free this worker
+                    zk.set(self.path, b"non")
                     print("Worker completed task %s with result %s" %(atask, result))
                 else :
+                    #free this worker
+                    zk.set(self.path, b"non")
                     print("Task %s not found, maybe the connection  was lost" %(task_path))
-                #7. delete assignment
-                zk.set(self.path, b"non")
 
 if __name__ == '__main__':
     zk = server.init()    
