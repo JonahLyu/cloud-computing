@@ -10,10 +10,11 @@ class Election:
         self.election_path = election_path
         self.zk = zk
         self.is_leader = False
-        self.child_id = self_path.split("/")[1]
+        self.child_id = self_path.split("/")[2]
         self.path = self_path
         self.leader_path = None
         self.kill_now =  False
+        print("My id is:  %s" % self.child_id)
 
     def kill_myself(self,signum, frame):
         self.zk.delete(self.path)
@@ -34,7 +35,7 @@ class Election:
 	#perform a vote..	
     def ballot(self,children):
         next_master = min(children)  #choose the minimum one as master
-        master_path = self.election_path + "master_current/"
+        master_path = self.election_path + "/master_current/"
         self.zk.ensure_path(master_path) #creat master_path znode if it doesn't exist
         self.leader_path = master_path + next_master #/master/master_current/id_123
         if(self.child_id == next_master) :
@@ -54,7 +55,8 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(asctime)s %(message)s',level=logging.DEBUG)
     zk = KazooClient(zkhost) 
     zk.start()
-   
+
+    zk.ensure_path(MASTER_PATH)
     master_path = MASTER_PATH + "/id_"
     child = zk.create(master_path, ephemeral=True, sequence=True)
     election = Election(zk, MASTER_PATH, child)
