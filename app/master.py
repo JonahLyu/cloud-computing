@@ -15,14 +15,14 @@ class Master:
         self.zk = zk
         self.workers = []
         self.clients = []
-        my_path = zk.create(ELECTION_PATH + '/id_', ephemeral=True, sequence=True)
-        self.election = Election(zk, ELECTION_PATH, my_path)
+        myPath = zk.create(ELECTION_PATH + '/id_', ephemeral=True, sequence=True)
+        self.election = Election(zk, ELECTION_PATH, myPath)
         self.election.ballot(self.zk.get_children(ELECTION_PATH))
-        zk.ChildrenWatch(WORKERS_PATH, self.worker_change, send_event=True)
-        zk.ChildrenWatch(TASKS_PATH, self.distribute_task, send_event=True)
-        zk.ChildrenWatch(CLIENT_PATH, self.client_change, send_event=True)
+        zk.ChildrenWatch(WORKERS_PATH, self.onWorkerChange, send_event=True)
+        zk.ChildrenWatch(TASKS_PATH, self.distributeTask, send_event=True)
+        zk.ChildrenWatch(CLIENT_PATH, self.onClientChange, send_event=True)
 
-    def compute_free_worker(self):
+    def findFreeWorker(self):
         workers = self.zk.get_children(WORKERS_PATH)
         if not workers == None : 
             for i in range(0, len(workers)) :
@@ -34,8 +34,8 @@ class Master:
         return None
 
     #distribute tasks to workers 				   
-    def distribute_task(self, children=None, event=None):
-        if self.election.is_master_server():
+    def distributeTask(self, children=None, event=None):
+        if self.election.isMasterServer():
             if(event) :
        	        logging.info("Change happened with event  = %s" %(event.type))
             tasks = self.zk.get_children(TASKS_PATH) #get all tasks
@@ -44,7 +44,7 @@ class Master:
                 taskStatus, _ = self.zk.get(taskPath)
                 taskStatus = taskStatus.decode("utf-8")
                 if ("assigned" not in taskStatus and "complete" not in taskStatus) : # not assigned
-                    freeWorker = self.compute_free_worker()
+                    freeWorker = self.findFreeWorker()
                     logging.info("Try to distribut %s to worker: %s" % (tasks[i], freeWorker))
                     if freeWorker is None :
                         logging.info("There is not any free worker now")
@@ -56,18 +56,18 @@ class Master:
                         newTaskData = f'assigned#{clientID}#{freeWorker}'
                         self.zk.set(taskPath, newTaskData.encode("utf-8")) # store worker id into task status
                         self.zk.set(statusPath, tasks[i].encode("utf-8")) # store task into worker status
-                        self.zk.get(statusPath, self.task_complete)
+                        self.zk.get(statusPath, self.onTaskComplete)
 			
-    def task_complete(self, event) :
+    def onTaskComplete(self, event) :
         # a worker finished a task
         statusPath = event.path
         if self.zk.exists(statusPath):
             status, _ = zk.get(statusPath)
             if status is not None and status.decode("utf-8") == "non":
                 logging.info("worker task complete: %s" % statusPath)
-                self.distribute_task(event=event)
+                self.distributeTask(event=event)
 
-    def worker_change(self, workers, event):
+    def onWorkerChange(self, workers, event):
         # calculate died worker
         diedWorkers = list(set(self.workers) - set(workers))
         if len(diedWorkers) > 0:
@@ -82,9 +82,9 @@ class Master:
                     self.zk.delete(f'{STATUS_PATH}/{diedWorker}') # delete the status of died worker
                     logging.info("Task free: %s" % status)
         self.workers = workers
-        self.distribute_task(event=event)
+        self.distributeTask(event=event)
     
-    def client_change(self, clients, event):
+    def onClientChange(self, clients, event):
         # calculate died client
         diedClients = list(set(self.clients) - set(clients))
         if len(diedClients) > 0:

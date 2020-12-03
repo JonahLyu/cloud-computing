@@ -23,11 +23,11 @@ zk = KazooClient(hosts=f'{cluster_ip}:2181')
 zk.start()
 
 # close the zk connection with Ctrl + c signal
-def interrupt_handler(signal, frame):
+def interruptHandler(signal, frame):
     zk.stop()
     sys.exit(0)
 # handle interrupt signal 
-signal.signal(signal.SIGINT, interrupt_handler)
+signal.signal(signal.SIGINT, interruptHandler)
 
 clientID = "client_" + str(uuid.uuid4())
 zk.create(f'{CLIENT_PATH}/{clientID}', ephemeral=True)
@@ -35,9 +35,9 @@ zk.create(f'{CLIENT_PATH}/{clientID}', ephemeral=True)
 count = 0
 pixels = []
 sliceNum = 3
-width = 500
-height = 500
-zoom = 2
+width = 1024
+height = 768
+zoom = 1
 
 # watch the workers status
 @zk.ChildrenWatch(WORKERS_PATH)

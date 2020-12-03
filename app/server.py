@@ -22,10 +22,10 @@ def init():
     zk.ensure_path(CLIENT_PATH)
 
     # close the zk connection with Ctrl + c signal
-    def interrupt_handler(signal, frame):
+    def interruptHandler(signal, frame):
         zk.stop()
         sys.exit(0)
     # handle interrupt signal 
-    signal.signal(signal.SIGINT, interrupt_handler)
+    signal.signal(signal.SIGINT, interruptHandler)
 
     return zk

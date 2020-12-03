@@ -6,47 +6,47 @@ ELECTION_PATH = '/master'
 
 class Election:
 
-    def __init__(self, zk, election_path, my_path):
-        self.election_path = election_path
+    def __init__(self, zk, electionPath, myPath):
+        self.electionPath = electionPath
         self.zk = zk
-        self.is_master = False
-        self.my_id = my_path.split("/")[2] #/master/id_123
-        self.my_path = my_path
-        self.master_path = None
-        self.kill_now =  False
-        logging.info("My id is:  %s" % self.my_id)
+        self.isMaster = False
+        self.myID = myPath.split("/")[2] #/master/id_123
+        self.myPath = myPath
+        self.masterPath = None
+        self.killNow =  False
+        logging.info("My id is:  %s" % self.myID)
 
     def kill_myself(self,signum, frame):
-        self.zk.delete(self.my_path)
-        if(self.is_master) :
-            self.zk.delete(self.master_path)
-        self.kill_now = True	
+        self.zk.delete(self.myPath)
+        if(self.isMaster) :
+            self.zk.delete(self.masterPath)
+        self.killNow = True	
 		 
-    def is_master_server(self):
-	    return self.is_master	
+    def isMasterServer(self):
+	    return self.isMaster	
 		
     def on_node_delete(self, event) :
         #in case of deletion start elections(perform a vote)
         if event.type == kazoo.protocol.states.EventType.DELETED:
             logging.info('Master just died, new master election start...')
-            self.ballot(self.zk.get_children(self.election_path))
+            self.ballot(self.zk.get_children(self.electionPath))
             
 	#perform a vote..	
     def ballot(self,children):
         new_master = min(children)  #choose the minimum one as master
-        master_path = self.election_path + "/master_current"
-        self.zk.ensure_path(master_path) #creat master_path znode if it doesn't exist
-        self.master_path = f'{master_path}/{new_master}' #/master/master_current/id_123
-        if(self.my_id == new_master) :
-            self.zk.create(self.master_path, ephemeral=True) 
-            self.is_master = True
-            logging.info ("Master is: %s" % (self.master_path)) 
+        masterPath = self.electionPath + "/master_current"
+        self.zk.ensure_path(masterPath) #creat masterPath znode if it doesn't exist
+        self.masterPath = f'{masterPath}/{new_master}' #/master/master_current/id_123
+        if(self.myID == new_master) :
+            self.zk.create(self.masterPath, ephemeral=True) 
+            self.isMaster = True
+            logging.info ("Master is: %s" % (self.masterPath)) 
             logging.info ("I am master now") 
             return True
         else:
-            self.zk.exists(self.master_path, self.on_node_delete) #watch the master delete event
-            self.is_master = False
-            logging.info ("Master is: %s" % (self.master_path)) 
+            self.zk.exists(self.masterPath, self.on_node_delete) #watch the master delete event
+            self.isMaster = False
+            logging.info ("Master is: %s" % (self.masterPath)) 
             logging.info ("I am worker now") 
             return False
 
@@ -59,12 +59,12 @@ if __name__ == '__main__':
     zk.start()
 
     zk.ensure_path(ELECTION_PATH)
-    master_path = ELECTION_PATH + "/id_"
-    my_path = zk.create(master_path, ephemeral=True, sequence=True)
-    election = Election(zk, ELECTION_PATH, my_path)
+    masterPath = ELECTION_PATH + "/id_"
+    myPath = zk.create(masterPath, ephemeral=True, sequence=True)
+    election = Election(zk, ELECTION_PATH, myPath)
 
     election.ballot(zk.get_children(ELECTION_PATH))
 
-    while (election.kill_now == False) :
+    while (election.killNow == False) :
         time.sleep(1)
     logging.info("I was killed gracefully")

@@ -4,7 +4,7 @@ from kazoo.client import KazooClient
 import yaml,logging,time,random
 import numpy as np
 
-def mandelbrot_set(width, height, startRow, endRow, zoom=1, x_off=0, y_off=0, niter=256):
+def mandelbrotSet(width, height, startRow, endRow, zoom=1, x_off=0, y_off=0, niter=256):
     w,h = width, height
     pixels = np.arange(w*(endRow - startRow), dtype=np.uint16).reshape(endRow - startRow, w)
 
@@ -49,7 +49,7 @@ def process():
         params = task.split(':')
         width, height, zoom = int(params[0]),int(params[1]),float(params[2])
         startRow, endRow = int(params[3]), int(params[4])
-        pixels = mandelbrot_set(width, height, startRow, endRow, zoom)
+        pixels = mandelbrotSet(width, height, startRow, endRow, zoom)
         zk.create(f"/data/{startRow}:{endRow}", pixels.tobytes(), makepath=True)
         taskQueue.consume()
     if taskQueue.__len__() == 0:
