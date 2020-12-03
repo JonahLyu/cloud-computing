@@ -9,15 +9,21 @@ RESULTS_PATH="/results"
 CLIENT_PATH="/clients"
 
 class Master:
-    #initialize the master
+    # initialize the master
     def __init__(self,zk):
         self.master = False
         self.zk = zk
         self.workers = []
         self.clients = []
+
+        # register itself as master election candidates
         myPath = zk.create(ELECTION_PATH + '/id_', ephemeral=True, sequence=True)
+
+        # join the election of master
         self.election = Election(zk, ELECTION_PATH, myPath)
-        self.election.ballot(self.zk.get_children(ELECTION_PATH))
+        self.election.ballorMaster(self.zk.get_children(ELECTION_PATH))
+
+        # all election will watch
         zk.ChildrenWatch(WORKERS_PATH, self.onWorkerChange, send_event=True)
         zk.ChildrenWatch(TASKS_PATH, self.distributeTask, send_event=True)
         zk.ChildrenWatch(CLIENT_PATH, self.onClientChange, send_event=True)
@@ -59,41 +65,44 @@ class Master:
                         self.zk.get(statusPath, self.onTaskComplete)
 			
     def onTaskComplete(self, event) :
-        # a worker finished a task
-        statusPath = event.path
-        if self.zk.exists(statusPath):
-            status, _ = zk.get(statusPath)
-            if status is not None and status.decode("utf-8") == "non":
-                logging.info("worker task complete: %s" % statusPath)
-                self.distributeTask(event=event)
+        if self.election.isMasterServer():
+            # a worker finished a task
+            statusPath = event.path
+            if self.zk.exists(statusPath):
+                status, _ = zk.get(statusPath)
+                if status is not None and status.decode("utf-8") == "non":
+                    logging.info("worker task complete: %s" % statusPath)
+                    self.distributeTask(event=event)
 
     def onWorkerChange(self, workers, event):
-        # calculate died worker
-        diedWorkers = list(set(self.workers) - set(workers))
-        if len(diedWorkers) > 0:
-            # free all tasks of died worker
-            for diedWorker in diedWorkers:
-                data, _ = self.zk.get(f'{STATUS_PATH}/{diedWorker}')
-                status = data.decode("utf-8")
-                logging.info("Worker died %s with status: %s" % (diedWorker, status))
-                #free the task assiged to this died worker
-                if status != "non" and self.zk.exists(f'{TASKS_PATH}/{status}'): 
-                    self.zk.set(f'{TASKS_PATH}/{status}', b'non') 
-                    self.zk.delete(f'{STATUS_PATH}/{diedWorker}') # delete the status of died worker
-                    logging.info("Task free: %s" % status)
-        self.workers = workers
-        self.distributeTask(event=event)
+        if self.election.isMasterServer():
+            # calculate died worker
+            diedWorkers = list(set(self.workers) - set(workers))
+            if len(diedWorkers) > 0:
+                # free all tasks of died worker
+                for diedWorker in diedWorkers:
+                    data, _ = self.zk.get(f'{STATUS_PATH}/{diedWorker}')
+                    status = data.decode("utf-8")
+                    logging.info("Worker died %s with status: %s" % (diedWorker, status))
+                    #free the task assiged to this died worker
+                    if status != "non" and self.zk.exists(f'{TASKS_PATH}/{status}'): 
+                        self.zk.set(f'{TASKS_PATH}/{status}', b'non') 
+                        self.zk.delete(f'{STATUS_PATH}/{diedWorker}') # delete the status of died worker
+                        logging.info("Task free: %s" % status)
+            self.workers = workers
+            self.distributeTask(event=event)
     
     def onClientChange(self, clients, event):
-        # calculate died client
-        diedClients = list(set(self.clients) - set(clients))
-        if len(diedClients) > 0:
-            # delete the result path of died clients
-            for diedClient in diedClients:
-                self.zk.delete(f"{RESULTS_PATH}/{diedClient}", recursive=True)
-                logging.info("client %s died" % diedClient)
-        self.clients = clients
-        logging.info("clients are: %s" % clients)
+        if self.election.isMasterServer():
+            # calculate died client
+            diedClients = list(set(self.clients) - set(clients))
+            if len(diedClients) > 0:
+                # delete the result path of died clients
+                for diedClient in diedClients:
+                    self.zk.delete(f"{RESULTS_PATH}/{diedClient}", recursive=True)
+                    logging.info("client %s died" % diedClient)
+            self.clients = clients
+            logging.info("clients are: %s" % clients)
                 
 if __name__ == '__main__':
     zk = server.init()

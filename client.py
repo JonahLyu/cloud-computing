@@ -42,13 +42,13 @@ zoom = 1
 # watch the workers status
 @zk.ChildrenWatch(WORKERS_PATH)
 def watch_worker(workers):
-    print("%d workers: %s" % (len(workers), workers))
+    print("%d workers" % (len(workers)))
 
 
 # watch the master status
 @zk.ChildrenWatch(ELECTION_PATH)
 def watch_master(masters):
-    print("%d masters: %s" % (len(masters), masters))
+    print("%d masters" % (len(masters) - 1))
 
 
 #create result path

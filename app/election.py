@@ -25,26 +25,28 @@ class Election:
     def isMasterServer(self):
 	    return self.isMaster	
 		
-    def on_node_delete(self, event) :
+    def onNodeDelete(self, event) :
         #in case of deletion start elections(perform a vote)
         if event.type == kazoo.protocol.states.EventType.DELETED:
             logging.info('Master just died, new master election start...')
-            self.ballot(self.zk.get_children(self.electionPath))
+            self.ballorMaster(self.zk.get_children(self.electionPath))
             
-	#perform a vote..	
-    def ballot(self,children):
-        new_master = min(children)  #choose the minimum one as master
+	# choose a master from all candidates, master return true
+    def ballorMaster(self,children):
+        newMaster = min(children)  #choose the minimum one as master (oldest)
         masterPath = self.electionPath + "/master_current"
         self.zk.ensure_path(masterPath) #creat masterPath znode if it doesn't exist
-        self.masterPath = f'{masterPath}/{new_master}' #/master/master_current/id_123
-        if(self.myID == new_master) :
+        self.masterPath = f'{masterPath}/{newMaster}' #/master/master_current/id_123
+        if (self.myID == newMaster) :
+            # this is a master, create a master path
             self.zk.create(self.masterPath, ephemeral=True) 
             self.isMaster = True
             logging.info ("Master is: %s" % (self.masterPath)) 
             logging.info ("I am master now") 
             return True
         else:
-            self.zk.exists(self.masterPath, self.on_node_delete) #watch the master delete event
+            # this is a worker, watch the master delete event
+            self.zk.exists(self.masterPath, self.onNodeDelete)
             self.isMaster = False
             logging.info ("Master is: %s" % (self.masterPath)) 
             logging.info ("I am worker now") 
@@ -61,9 +63,9 @@ if __name__ == '__main__':
     zk.ensure_path(ELECTION_PATH)
     masterPath = ELECTION_PATH + "/id_"
     myPath = zk.create(masterPath, ephemeral=True, sequence=True)
+    
     election = Election(zk, ELECTION_PATH, myPath)
-
-    election.ballot(zk.get_children(ELECTION_PATH))
+    election.ballorMaster(zk.get_children(ELECTION_PATH))
 
     while (election.killNow == False) :
         time.sleep(1)
