@@ -1,5 +1,6 @@
 import time, kazoo, logging
 from kazoo.client import KazooClient
+import logging
 
 ELECTION_PATH = '/master'
 
@@ -13,7 +14,7 @@ class Election:
         self.my_path = my_path
         self.master_path = None
         self.kill_now =  False
-        print("My id is:  %s" % self.my_id)
+        logging.info("My id is:  %s" % self.my_id)
 
     def kill_myself(self,signum, frame):
         self.zk.delete(self.my_path)
@@ -27,7 +28,7 @@ class Election:
     def on_node_delete(self, event) :
         #in case of deletion start elections(perform a vote)
         if event.type == kazoo.protocol.states.EventType.DELETED:
-            print('Master just died, new master election start...')
+            logging.info('Master just died, new master election start...')
             self.ballot(self.zk.get_children(self.election_path))
             
 	#perform a vote..	
@@ -39,14 +40,14 @@ class Election:
         if(self.my_id == new_master) :
             self.zk.create(self.master_path, ephemeral=True) 
             self.is_master = True
-            print ("Master is: %s" % (self.master_path)) 
-            print ("I am master now") 
+            logging.info ("Master is: %s" % (self.master_path)) 
+            logging.info ("I am master now") 
             return True
         else:
             self.zk.exists(self.master_path, self.on_node_delete) #watch the master delete event
             self.is_master = False
-            print ("Master is: %s" % (self.master_path)) 
-            print ("I am worker now") 
+            logging.info ("Master is: %s" % (self.master_path)) 
+            logging.info ("I am worker now") 
             return False
 
 
@@ -66,4 +67,4 @@ if __name__ == '__main__':
 
     while (election.kill_now == False) :
         time.sleep(1)
-    print("I was killed gracefully")
+    logging.info("I was killed gracefully")

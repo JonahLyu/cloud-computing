@@ -1,7 +1,7 @@
-import yaml
+import yaml, time
 
 MASTER_NUM_ON_EACH_NODE = 1
-WORKER_NUM_ON_EACH_NODE = 2
+WORKER_NUM_ON_EACH_NODE = 3
 
 with open('config.yaml') as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
@@ -19,18 +19,23 @@ zk = KazooClient(hosts=f'{cluster_ip}:2181')
 
 zk.start()
 
+masterNum = 0
+workerNum = 0
 # watch the workers status
 @zk.ChildrenWatch("/workers")
 def watch_worker(workers):
-    print("%d workers: %s" % (len(workers), workers))
+    workerNum = len(workers)
+    print("current worker num: %d" % workerNum)
 
 
 # watch the master status
 @zk.ChildrenWatch("/master")
 def watch_master(masters):
-    print("%d masters: %s" % (len(masters), masters))
+    masterNum = len(masters)
+    print("current master num: %d" % masterNum)
 
-# let range run from 1 to n!
+# kill all worker and master
+print("kill the server...")
 for idx in range(1, instance_count + 1):
     ip_pair = hosts[idx - 1]
     pub_ip = ip_pair[0]
@@ -39,15 +44,25 @@ for idx in range(1, instance_count + 1):
     c.sudo('''kill -9 $(ps -ef | grep worker.py | grep root | awk '{ print $2}')''', warn=True)
     c.sudo('''kill -9 $(ps -ef | grep master.py | grep root | awk '{ print $2}')''', warn=True)
 
+while masterNum > 1:
+    time.sleep(1)
+
+# launch the server
+print("launch the server...")
+for idx in range(1, instance_count + 1):
+    ip_pair = hosts[idx - 1]
+    pub_ip = ip_pair[0]
+    print (f'connecting to {pub_ip}')
+    c = Connection(f'ubuntu@{pub_ip}', connect_kwargs={'key_filename': config['ssh_path']})
     c.run("mkdir -p /home/ubuntu/app")
     c.put(local="./app/election.py", remote="/home/ubuntu/app/election.py")
     c.put(local="./app/server.py", remote="/home/ubuntu/app/server.py")
     c.put(local="./app/worker.py", remote="/home/ubuntu/app/worker.py")
     c.put(local="./app/master.py", remote="/home/ubuntu/app/master.py")
     for i in range(MASTER_NUM_ON_EACH_NODE):
-        c.sudo(f'python /home/ubuntu/app/master.py 2>master_error.log >master_out.log &', warn=True)
+        c.sudo(f'python /home/ubuntu/app/master.py 2>/home/ubuntu/app/master_error.log >/home/ubuntu/app/master_out.log &', warn=True)
     for i in range(WORKER_NUM_ON_EACH_NODE):
-        c.sudo(f'python /home/ubuntu/app/worker.py 2>worker_error.log >worker_out.log &', warn=True)
+        c.sudo(f'python /home/ubuntu/app/worker.py 2>/home/ubuntu/app/worker_error.log >/home/ubuntu/app/worker_out.log &', warn=True)
 
 
 input('wait to quit')

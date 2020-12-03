@@ -1,5 +1,5 @@
 from election import Election
-import time, server
+import time, server, logging
 ELECTION_PATH="/master"
 TASKS_PATH="/tasks"
 PARAMS_PATH="/params"
@@ -37,7 +37,7 @@ class Master:
     def distribute_task(self, children=None, event=None):
         if self.election.is_master_server():
             if(event) :
-       	        print("Change happened with event  = %s" %(event.type))
+       	        logging.info("Change happened with event  = %s" %(event.type))
             tasks = self.zk.get_children(TASKS_PATH) #get all tasks
             for i in range(0,len(tasks)) :
                 taskPath = f'{TASKS_PATH}/{tasks[i]}'
@@ -45,9 +45,9 @@ class Master:
                 taskStatus = taskStatus.decode("utf-8")
                 if ("assigned" not in taskStatus and "complete" not in taskStatus) : # not assigned
                     freeWorker = self.compute_free_worker()
-                    print("Try to distribut %s to worker: %s" % (tasks[i], freeWorker))
+                    logging.info("Try to distribut %s to worker: %s" % (tasks[i], freeWorker))
                     if freeWorker is None :
-                        print("There is not any free worker now")
+                        logging.info("There is not any free worker now")
                         break
                     else:
                         statusPath = f'{STATUS_PATH}/{freeWorker}'
@@ -64,7 +64,7 @@ class Master:
         if self.zk.exists(statusPath):
             status, _ = zk.get(statusPath)
             if status is not None and status.decode("utf-8") == "non":
-                print("worker task complete: %s" % statusPath)
+                logging.info("worker task complete: %s" % statusPath)
                 self.distribute_task(event=event)
 
     def worker_change(self, workers, event):
@@ -75,12 +75,12 @@ class Master:
             for diedWorker in diedWorkers:
                 data, _ = self.zk.get(f'{STATUS_PATH}/{diedWorker}')
                 status = data.decode("utf-8")
-                print("Worker died %s with status: %s" % (diedWorker, status))
+                logging.info("Worker died %s with status: %s" % (diedWorker, status))
                 #free the task assiged to this died worker
                 if status != "non" and self.zk.exists(f'{TASKS_PATH}/{status}'): 
                     self.zk.set(f'{TASKS_PATH}/{status}', b'non') 
                     self.zk.delete(f'{STATUS_PATH}/{diedWorker}') # delete the status of died worker
-                    print("Task free: %s" % status)
+                    logging.info("Task free: %s" % status)
         self.workers = workers
         self.distribute_task(event=event)
     
@@ -91,9 +91,9 @@ class Master:
             # delete the result path of died clients
             for diedClient in diedClients:
                 self.zk.delete(f"{RESULTS_PATH}/{diedClient}", recursive=True)
-                print("client %s died" % diedClient)
+                logging.info("client %s died" % diedClient)
         self.clients = clients
-        print("clients are: %s" % clients)
+        logging.info("clients are: %s" % clients)
                 
 if __name__ == '__main__':
     zk = server.init()

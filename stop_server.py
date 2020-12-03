@@ -1,14 +1,10 @@
 import yaml
-
-MASTER_NUM_ON_EACH_NODE = 1
-WORKER_NUM_ON_EACH_NODE = 2
+from fabric import Connection
 
 with open('config.yaml') as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
 hosts = [(k, v) for k, v in config['hosts'].items()]
-
-from fabric import Connection
 
 instance_count = len(hosts)
 
@@ -18,10 +14,6 @@ cluster_ip = list(config['hosts'].keys())[0]
 zk = KazooClient(hosts=f'{cluster_ip}:2181')
 
 zk.start()
-
-@zk.ChildrenWatch("/servers")
-def watch_server(servers):
-    print("servers are %s" % servers)
 
 # let range run from 1 to n!
 for idx in range(1, instance_count + 1):

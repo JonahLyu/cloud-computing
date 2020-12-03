@@ -19,4 +19,5 @@ for idx in range(1, instance_count + 1):
     print (f'connecting to {pub_ip}')
     c = Connection(f'ubuntu@{pub_ip}', connect_kwargs={'key_filename': config['ssh_path']})
     
-    c.sudo('/usr/local/zookeeper/bin/zkServer.sh status', warn=True)
+    # c.sudo('/usr/local/zookeeper/bin/zkServer.sh status', warn=True)
+    c.sudo('cat /home/ubuntu/app/worker_error.log', warn=True)

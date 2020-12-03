@@ -12,7 +12,7 @@ worker:
 	python ./app/worker.py
 
 client:
-	python ./app/client.py
+	python ./client.py
 
 election:
 	python ./app/election.py

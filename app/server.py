@@ -10,7 +10,7 @@ STATUS_PATH="/status"
 CLIENT_PATH="/clients"
 
 def init():
-    logging.basicConfig(format='%(asctime)s %(message)s',level=logging.ERROR)
+    logging.basicConfig(format='%(asctime)s %(message)s',level=logging.INFO)
     zk = KazooClient(hosts="127.0.0.1:2181")
     zk.start()
     zk.ensure_path(ELECTION_PATH)

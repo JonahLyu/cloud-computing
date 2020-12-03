@@ -2,7 +2,7 @@ import time, socket, os, uuid, sys, kazoo, logging, signal
 from kazoo.protocol.states import EventType
 from kazoo.client import KazooClient
 from election import Election
-import server
+import server, logging
 import numpy as np
 ELECTION_PATH="/master"
 TASKS_PATH="/tasks"
@@ -45,7 +45,7 @@ class Worker:
         zk.ensure_path(self.statusPath) # permanent status path
         zk.set(self.statusPath, b"non")
         zk.create(self.workerPath, b"non", ephemeral=True)
-        print("Worker %s  created!" %(self.workerPath))
+        logging.info("Worker %s  created!" %(self.workerPath))
         #3.watch znode
         zk.DataWatch(self.statusPath, self.assignment_change)   
     
@@ -53,13 +53,13 @@ class Worker:
     def assignment_change(self, taskID, stat):
         if taskID is not None and taskID.decode("utf-8") != "non":
             taskID = taskID.decode("utf-8")
-            print("Worker recieved task %s" % taskID) 
+            logging.info("Worker recieved task %s" % taskID) 
             #4.5. get the parameters of the task
             paramPath = f'{PARAMS_PATH}/{taskID}'
             taskPath = f'{TASKS_PATH}/{taskID}'
             clientID, _ = self.zk.get(taskPath)
             clientID = clientID.decode("utf-8").split('#')[1]
-            print(clientID)
+            logging.info(clientID)
             if self.zk.exists(paramPath) :
                 data, _ = self.zk.get(paramPath)
                 #6. execute task with data
@@ -75,11 +75,11 @@ class Worker:
                     self.zk.set(taskPath, b"complete")
                     #free this worker
                     self.zk.set(self.statusPath, b"non")
-                    print("Worker completed task %s" % taskID)
+                    logging.info("Worker completed task %s" % taskID)
                 else :
                     #free this worker
                     self.zk.set(self.statusPath, b"non")
-                    print("Task %s not found, maybe the connection  was lost" %(resultPath))
+                    logging.info("Task %s not found, maybe the connection  was lost" %(resultPath))
 
 
 
