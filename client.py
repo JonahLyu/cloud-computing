@@ -17,7 +17,7 @@ zk.create(f'{CLIENT_PATH}/{clientID}', ephemeral=True)
 
 count = 0
 pixels = []
-sliceNum = 3
+sliceNum = 30
 width = 1024
 height = 768
 zoom = 1
