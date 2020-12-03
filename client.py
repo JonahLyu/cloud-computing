@@ -62,8 +62,8 @@ zoom = float(input("enter zoom (float value): "))
 
 def generateTask(sliceNum, width,height, zoom):
     global pixels
+    allTasks = []
     pixels = np.arange(width*height, dtype=np.uint16).reshape(height, width)
-    allRows = []
     for i in range(sliceNum):
         startRow = (height // sliceNum) * i
         if i == sliceNum - 1:
@@ -71,24 +71,19 @@ def generateTask(sliceNum, width,height, zoom):
         else:
             endRow = (height // sliceNum) * (i + 1)
         task = f'{width}:{height}:{zoom}:{startRow}:{endRow}'
-        allRows.append(task.encode("utf-8"))
-    print("deploy tasks: ", sliceNum)
-    return allRows
-
-tasks = generateTask(sliceNum, width, height, zoom)
+        # 1. create /params/task_id to store the parameters of task
+        newParamPath = f'{PARAMS_PATH}/{i}_'
+        newParamPath = zk.create(newParamPath, task.encode("utf-8"), sequence=True, ephemeral=True)
+        # 2. create /tasks/task_id
+        taskID = newParamPath.split('/')[2]
+        newTaskPath = f'{TASKS_PATH}/{taskID}'
+        newTaskPath = zk.create(newTaskPath, clientID.encode("utf-8"), ephemeral=True)
+        print("deploy task: %s %s" % (newTaskPath, task.encode("utf-8")))
+        allTasks.append((f'{newResultPath}/{taskID}', startRow, endRow))
+    return allTasks
 
 start = time.time()
-# deploy tasks
-for i in range(len(tasks)):
-    # 1. create /params/task_id to store the parameters of task
-    newParamPath = f'{PARAMS_PATH}/{i}_'
-    newParamPath = zk.create(newParamPath, tasks[i], sequence=True, ephemeral=True)
-    # 2. create /tasks/task_id
-    taskID = newParamPath.split('/')[2]
-    newTaskPath = f'{TASKS_PATH}/{taskID}'
-    newTaskPath = zk.create(newTaskPath, clientID.encode("utf-8"), ephemeral=True)
-    print("deploy task: %s %s" % (newTaskPath, tasks[i]))
-    
+allTasks = generateTask(sliceNum, width, height, zoom)
 
 # watch the result status
 @zk.ChildrenWatch(newResultPath)
@@ -105,13 +100,8 @@ print("Total time: %.2f seconds" % (end - start))
 
 print("download image...")
 count = 0
-results = zk.get_children(newResultPath)
-for taskID in results: 
-    data, _ = zk.get(f"{newResultPath}/{taskID}")
-    paramsData, _ = zk.get(f"{PARAMS_PATH}/{taskID}")
-    paramsData = paramsData.decode("utf-8")
-    params = paramsData.split(':')
-    startRow,  endRow= int(params[3]), int(params[4])
+for (resultPath, startRow, endRow) in allTasks: 
+    data, _ = zk.get(resultPath)
     pixelSlice = np.frombuffer(data, dtype=np.uint16).reshape(endRow-startRow,width)
     pixels[startRow:endRow] = pixelSlice
     count += 1
