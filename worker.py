@@ -33,23 +33,26 @@ class Worker:
             print("Worker recieved task %s" % taskID) 
             #4.5. get the parameters of the task
             paramPath = f'{PARAMS_PATH}/{taskID}'
+            taskPath = f'{TASKS_PATH}/{taskID}'
+            clientID, _ = self.zk.get(taskPath)
+            clientID = clientID.decode("utf-8").split('#')[2]
             if self.zk.exists(paramPath) :
                 data, _ = self.zk.get(paramPath)
                 #6. execute task with data
                 result = data.decode("utf-8")
                 time.sleep(10)
                 taskPath = f'{TASKS_PATH}/{taskID}'
-                resultPath = f'{RESULTS_PATH}/{taskID}'
+                resultPath = f'{RESULTS_PATH}/{clientID}/{taskID}'
                 # write result back to task
-                if self.zk.exists(taskPath) and self.zk.exists(resultPath) :
-                    zk.set(resultPath, result.encode("utf-8"))
-                    zk.set(taskPath, b"complete")
+                if self.zk.exists(taskPath):
+                    self.zk.create(resultPath, result.encode("utf-8"))
+                    self.zk.set(taskPath, b"complete")
                     #free this worker
-                    zk.set(self.statusPath, b"non")
+                    self.zk.set(self.statusPath, b"non")
                     print("Worker completed task %s" % taskID)
                 else :
                     #free this worker
-                    zk.set(self.statusPath, b"non")
+                    self.zk.set(self.statusPath, b"non")
                     print("Task %s not found, maybe the connection  was lost" %(resultPath))
 
 if __name__ == '__main__':

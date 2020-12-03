@@ -7,6 +7,7 @@ PARAMS_PATH="/params"
 WORKERS_PATH="/workers"
 RESULTS_PATH="/results"
 STATUS_PATH="/status"
+CLIENT_PATH="/clients"
 
 def init():
     logging.basicConfig(format='%(asctime)s %(message)s',level=logging.ERROR)
@@ -18,6 +19,7 @@ def init():
     zk.ensure_path(WORKERS_PATH)
     zk.ensure_path(RESULTS_PATH)
     zk.ensure_path(STATUS_PATH)
+    zk.ensure_path(CLIENT_PATH)
 
     # close the zk connection with Ctrl + c signal
     def interrupt_handler(signal, frame):

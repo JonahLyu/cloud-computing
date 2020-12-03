@@ -1,13 +1,12 @@
-import time, socket, os, uuid, sys, kazoo, logging, signal
-from kazoo.protocol.states import EventType
-from kazoo.client import KazooClient
 from election import Election
-import server
+import time, server
 ELECTION_PATH="/master"
 TASKS_PATH="/tasks"
 PARAMS_PATH="/params"
 WORKERS_PATH="/workers"
 STATUS_PATH="/status"
+RESULTS_PATH="/results"
+CLIENT_PATH="/clients"
 
 class Master:
     #initialize the master
@@ -15,11 +14,13 @@ class Master:
         self.master = False
         self.zk = zk
         self.workers = []
+        self.clients = []
         my_path = zk.create(ELECTION_PATH + '/id_', ephemeral=True, sequence=True)
         self.election = Election(zk, ELECTION_PATH, my_path)
         self.election.ballot(self.zk.get_children(ELECTION_PATH))
         zk.ChildrenWatch(WORKERS_PATH, self.worker_change, send_event=True)
         zk.ChildrenWatch(TASKS_PATH, self.distribute_task, send_event=True)
+        zk.ChildrenWatch(CLIENT_PATH, self.client_change, send_event=True)
 
     def compute_free_worker(self):
         workers = self.zk.get_children(WORKERS_PATH)
@@ -50,8 +51,10 @@ class Master:
                         break
                     else:
                         statusPath = f'{STATUS_PATH}/{freeWorker}'
-                        new_task_data = f'assigned#{freeWorker}'
-                        self.zk.set(taskPath, new_task_data.encode("utf-8")) # store worker id into task status
+                        clientID, _ = self.zk.get(taskPath)
+                        clientID = clientID.decode("utf-8")
+                        newTaskData = f'assigned#{clientID}#{freeWorker}'
+                        self.zk.set(taskPath, newTaskData.encode("utf-8")) # store worker id into task status
                         self.zk.set(statusPath, tasks[i].encode("utf-8")) # store task into worker status
                         self.zk.get(statusPath, self.task_complete)
 			
@@ -80,6 +83,17 @@ class Master:
                     print("Task free: %s" % status)
         self.workers = workers
         self.distribute_task(event=event)
+    
+    def client_change(self, clients, event):
+        # calculate died client
+        diedClients = list(set(self.clients) - set(clients))
+        if len(diedClients) > 0:
+            # delete the result path of died clients
+            for diedClient in diedClients:
+                self.zk.delete(f"{RESULTS_PATH}/{diedClient}", recursive=True)
+                print("client %s died" % diedClient)
+        self.clients = clients
+        print("clients are: %s" % clients)
                 
 if __name__ == '__main__':
     zk = server.init()

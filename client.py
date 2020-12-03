@@ -1,5 +1,5 @@
 from kazoo.client import KazooClient
-import server, time
+import server, time, uuid
 import numpy as np
 
 ELECTION_PATH="/master"
@@ -7,8 +7,12 @@ TASKS_PATH="/tasks"
 PARAMS_PATH="/params"
 WORKERS_PATH="/workers"
 RESULTS_PATH="/results"
+CLIENT_PATH="/clients"
 
 zk = server.init()
+
+clientID = "client_" + str(uuid.uuid4())
+zk.create(f'{CLIENT_PATH}/{clientID}', ephemeral=True)
 
 count = 0
 pixels = []
@@ -46,19 +50,27 @@ def creatTask(sliceNum, width,height, zoom):
 
 tasks = creatTask(sliceNum, width, height, zoom)
 
+#create result path
+newResultPath = f'{RESULTS_PATH}/{clientID}'
+newResultPath = zk.ensure_path(newResultPath)
+
 for i in range(len(tasks)):
     # 1. create /params/task_id to store the parameters of task
-    newDataPath = f'{PARAMS_PATH}/{i}_'
-    newDataPath = zk.create(newDataPath, tasks[i], sequence=True, ephemeral=True)
+    newParamPath = f'{PARAMS_PATH}/{i}_'
+    newParamPath = zk.create(newParamPath, tasks[i], sequence=True, ephemeral=True)
     # 2. create /tasks/task_id
-    taskID = newDataPath.split('/')[2]
+    taskID = newParamPath.split('/')[2]
     newTaskPath = f'{TASKS_PATH}/{taskID}'
-    newResultPath = f'{RESULTS_PATH}/{taskID}'
-    newTaskPath = zk.create(newTaskPath, ephemeral=True)
-    newResultPath = zk.create(newResultPath, ephemeral=True)
-    print(newDataPath)
+    newTaskPath = zk.create(newTaskPath, clientID.encode("utf-8"), ephemeral=True)
+    print(newParamPath)
     print(newTaskPath)
-    print(newResultPath)
+    
 
+# watch the result status
+@zk.ChildrenWatch(newResultPath)
+def watch_result(results):
+    print("results: %s" % (results))
+
+print(newResultPath)
 while True:
     time.sleep(1)
