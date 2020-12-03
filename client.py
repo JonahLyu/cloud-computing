@@ -1,6 +1,7 @@
 from kazoo.client import KazooClient
 import server, time, uuid
 import numpy as np
+import matplotlib.pyplot as plt
 
 ELECTION_PATH="/master"
 TASKS_PATH="/tasks"
@@ -19,7 +20,7 @@ pixels = []
 sliceNum = 3
 width = 1024
 height = 768
-zoom = 1.2
+zoom = 1
 
 # watch the workers status
 @zk.ChildrenWatch(WORKERS_PATH)
@@ -53,6 +54,7 @@ tasks = creatTask(sliceNum, width, height, zoom)
 #create result path
 newResultPath = f'{RESULTS_PATH}/{clientID}'
 newResultPath = zk.ensure_path(newResultPath)
+print("create: %s" % newResultPath)
 
 for i in range(len(tasks)):
     # 1. create /params/task_id to store the parameters of task
@@ -62,15 +64,36 @@ for i in range(len(tasks)):
     taskID = newParamPath.split('/')[2]
     newTaskPath = f'{TASKS_PATH}/{taskID}'
     newTaskPath = zk.create(newTaskPath, clientID.encode("utf-8"), ephemeral=True)
-    print(newParamPath)
-    print(newTaskPath)
+    print("create: %s" % newParamPath)
+    print("create: %s" % newTaskPath)
     
+
+start = time.time()
 
 # watch the result status
 @zk.ChildrenWatch(newResultPath)
 def watch_result(results):
-    print("results: %s" % (results))
+    global pixels, count, width
+    count = len(results)
+    print("task progress: %d/%d" % (count, sliceNum))
 
-print(newResultPath)
+
+while count < sliceNum:
+    pass
+end = time.time()
+print("Total time: %.2f seconds" % (end - start))
+
+results = zk.get_children(newResultPath)
+for taskID in results: 
+    data, _ = zk.get(f"{newResultPath}/{taskID}")
+    paramsData, _ = zk.get(f"{PARAMS_PATH}/{taskID}")
+    paramsData = paramsData.decode("utf-8")
+    params = paramsData.split(':')
+    startRow,  endRow= int(params[3]), int(params[4])
+    pixelSlice = np.frombuffer(data, dtype=np.uint16).reshape(endRow-startRow,width)
+    pixels[startRow:endRow] = pixelSlice
+plt.axis('off')
+plt.imshow(pixels)
+plt.savefig("result.png")
 while True:
     time.sleep(1)
