@@ -41,8 +41,7 @@ for idx in range(1, instance_count + 1):
     pub_ip = ip_pair[0]
     print (f'connecting to {pub_ip}')
     c = Connection(f'ubuntu@{pub_ip}', connect_kwargs={'key_filename': config['ssh_path']})
-    c.sudo('''kill -9 $(ps -ef | grep worker.py | grep root | awk '{ print $2}')''', warn=True)
-    c.sudo('''kill -9 $(ps -ef | grep master.py | grep root | awk '{ print $2}')''', warn=True)
+    c.sudo('''kill -9 $(sudo lsof -i:2181 | grep python | awk '{print $2}')''', warn=True, hide=True)
 
 while masterNum > 1:
     time.sleep(1)
@@ -60,9 +59,9 @@ for idx in range(1, instance_count + 1):
     c.put(local="./app/worker.py", remote="/home/ubuntu/app/worker.py")
     c.put(local="./app/master.py", remote="/home/ubuntu/app/master.py")
     for i in range(MASTER_NUM_ON_EACH_NODE):
-        c.sudo(f'python /home/ubuntu/app/master.py 2>/home/ubuntu/app/master_error.log >/home/ubuntu/app/master_out.log &', warn=True)
+        c.sudo(f'python /home/ubuntu/app/master.py 2>/home/ubuntu/app/master_error.log >/home/ubuntu/app/master_out.log &', warn=True, asynchronous=True)
     for i in range(WORKER_NUM_ON_EACH_NODE):
-        c.sudo(f'python /home/ubuntu/app/worker.py 2>/home/ubuntu/app/worker_error.log >/home/ubuntu/app/worker_out.log &', warn=True)
+        c.sudo(f'python /home/ubuntu/app/worker.py 2>/home/ubuntu/app/worker_error.log >/home/ubuntu/app/worker_out.log &', warn=True, asynchronous=True)
 
 
 input('wait to quit')
