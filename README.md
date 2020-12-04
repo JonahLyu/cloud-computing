@@ -36,6 +36,7 @@ enter number of slices to deploy: 9
 enter zoom (float value): 200
 ```
 ![result_zoom_200}](/png/result_zoom_200.png)
+
 **Stop the server**
 ```
 make stop
