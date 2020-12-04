@@ -1,31 +1,24 @@
-import sys, logging, signal
-from kazoo.client import KazooClient
+import utils, sys, logging, time
+from master import Master
+from worker import Worker
 
-ELECTION_PATH="/master"
-TASKS_PATH="/tasks"
-PARAMS_PATH="/params"
-WORKERS_PATH="/workers"
-RESULTS_PATH="/results"
-STATUS_PATH="/status"
-CLIENT_PATH="/clients"
+if __name__ == '__main__':
 
-def init():
-    logging.basicConfig(format='%(asctime)s %(message)s',level=logging.INFO)
-    zk = KazooClient(hosts="127.0.0.1:2181")
-    zk.start()
-    zk.ensure_path(ELECTION_PATH)
-    zk.ensure_path(TASKS_PATH)
-    zk.ensure_path(PARAMS_PATH)
-    zk.ensure_path(WORKERS_PATH)
-    zk.ensure_path(RESULTS_PATH)
-    zk.ensure_path(STATUS_PATH)
-    zk.ensure_path(CLIENT_PATH)
+    # get 127.0.0.1:2181 local zk client
+    zk = utils.init('local')
 
-    # close the zk connection with Ctrl + c signal
-    def interruptHandler(signal, frame):
-        zk.stop()
+    # this is a master cadidate
+    if (sys.argv[1]) == 'master':
+        master = Master(zk)
+
+    # this is a worker
+    elif (sys.argv[1]) == 'worker':
+        worker = Worker(zk)
+
+    # this is nothing
+    else:
+        logging.info("wrong arg")
         sys.exit(0)
-    # handle interrupt signal 
-    signal.signal(signal.SIGINT, interruptHandler)
 
-    return zk
+    while True:
+        time.sleep(1)

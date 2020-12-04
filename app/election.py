@@ -1,6 +1,6 @@
 import time, kazoo, logging
 from kazoo.client import KazooClient
-import logging
+import logging, utils
 
 ELECTION_PATH = '/master'
 
@@ -55,10 +55,7 @@ class Election:
 
                     
 if __name__ == '__main__':
-    zkhost = "127.0.0.1:2181" #default ZK host
-    logging.basicConfig(format='%(asctime)s %(message)s',level=logging.DEBUG)
-    zk = KazooClient(zkhost) 
-    zk.start()
+    zk = utils.init('out') #get out cluster zk client
 
     zk.ensure_path(ELECTION_PATH)
     masterPath = ELECTION_PATH + "/id_"

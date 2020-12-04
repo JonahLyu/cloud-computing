@@ -54,14 +54,16 @@ for idx in range(1, instance_count + 1):
     print (f'connecting to {pub_ip}')
     c = Connection(f'ubuntu@{pub_ip}', connect_kwargs={'key_filename': config['ssh_path']})
     c.run("mkdir -p /home/ubuntu/app")
+    c.run("mkdir -p /home/ubuntu/app/log")
+    c.put(local="./app/utils.py", remote="/home/ubuntu/app/utils.py")
     c.put(local="./app/election.py", remote="/home/ubuntu/app/election.py")
     c.put(local="./app/server.py", remote="/home/ubuntu/app/server.py")
     c.put(local="./app/worker.py", remote="/home/ubuntu/app/worker.py")
     c.put(local="./app/master.py", remote="/home/ubuntu/app/master.py")
     for i in range(MASTER_NUM_ON_EACH_NODE):
-        c.sudo(f'python /home/ubuntu/app/master.py 2>/home/ubuntu/app/master_error.log >/home/ubuntu/app/master_out.log &', warn=True, asynchronous=True)
+        c.sudo(f'python /home/ubuntu/app/server.py master 2>/home/ubuntu/app/log/master_{i}.log >/dev/null &', warn=True, asynchronous=True)
     for i in range(WORKER_NUM_ON_EACH_NODE):
-        c.sudo(f'python /home/ubuntu/app/worker.py 2>/home/ubuntu/app/worker_error.log >/home/ubuntu/app/worker_out.log &', warn=True, asynchronous=True)
+        c.sudo(f'python /home/ubuntu/app/server.py worker 2>/home/ubuntu/app/log/worker_{i}.log >/dev/null &', warn=True, asynchronous=True)
 
 
 input('wait to quit')

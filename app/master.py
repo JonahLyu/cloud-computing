@@ -1,5 +1,5 @@
 from election import Election
-import time, server, logging
+import time, logging, utils, random
 ELECTION_PATH="/master"
 TASKS_PATH="/tasks"
 PARAMS_PATH="/params"
@@ -28,15 +28,19 @@ class Master:
         zk.ChildrenWatch(TASKS_PATH, self.distributeTask, send_event=True)
         zk.ChildrenWatch(CLIENT_PATH, self.onClientChange, send_event=True)
 
+
     def findFreeWorker(self):
         workers = self.zk.get_children(WORKERS_PATH)
         if not workers == None : 
+            # choose a random worker to search
+            start = random.randint(0, len(workers))
             for i in range(0, len(workers)) :
-                statusPath = f'{STATUS_PATH}/{workers[i]}'
+                index = (start + i) % len(workers)
+                statusPath = f'{STATUS_PATH}/{workers[index]}'
                 val, _ = self.zk.get(statusPath)
                 # Check if no task is assigned to the worker
                 if ("non" in val.decode("utf-8")) :
-                    return  workers[i]
+                    return  workers[index]
         return None
 
     #distribute tasks to workers 				   
@@ -69,7 +73,7 @@ class Master:
             # a worker finished a task
             statusPath = event.path
             if self.zk.exists(statusPath):
-                status, _ = zk.get(statusPath)
+                status, _ = self.zk.get(statusPath)
                 if status is not None and status.decode("utf-8") == "non":
                     logging.info("worker task complete: %s" % statusPath)
                     self.distributeTask(event=event)
@@ -105,7 +109,7 @@ class Master:
             logging.info("clients are: %s" % clients)
                 
 if __name__ == '__main__':
-    zk = server.init()
+    zk = utils.init('out')  #get out cluster zk client
     master = Master(zk)
     while True:
         time.sleep(1)

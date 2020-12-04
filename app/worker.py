@@ -1,8 +1,5 @@
 import time, socket, os, uuid, sys, kazoo, logging, signal
-from kazoo.protocol.states import EventType
-from kazoo.client import KazooClient
-from election import Election
-import server, logging
+import logging, utils
 import numpy as np
 ELECTION_PATH="/master"
 TASKS_PATH="/tasks"
@@ -86,7 +83,7 @@ class Worker:
 
 
 if __name__ == '__main__':
-    zk = server.init()    
+    zk = utils.init('out')   #get out cluster zk client
     worker = Worker(zk)
     while True:
         time.sleep(1)

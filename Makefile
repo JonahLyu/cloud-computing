@@ -1,4 +1,4 @@
-.PHONY: start master worker client election
+.PHONY: start master worker client election init query
 
 # start the app server in zk cluster
 start:
@@ -11,6 +11,14 @@ stop:
 # start a client
 client:
 	python ./client.py
+
+# initilize the zk cluster
+init:
+	python ./init_zk_cluster.py
+
+# query the zk cluster
+query:
+	python ./query_zk_cluster.py
 
 # start a master on current node, this is for test
 master:
