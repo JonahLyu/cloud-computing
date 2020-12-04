@@ -11,7 +11,7 @@ RESULTS_PATH="/results"
 
 def mandelbrotSet(width, height, startRow, endRow, zoom=1, niter=256):
     w,h = width, height
-    pixels = np.arange(w*(endRow - startRow), dtype=np.uint16).reshape(endRow - startRow, w)
+    pixels = np.arange(w*(endRow - startRow), dtype=np.uint8).reshape(endRow - startRow, w)
 
     zoom = 1 / zoom
     for x in range(w): 
@@ -27,7 +27,7 @@ def mandelbrotSet(width, height, startRow, endRow, zoom=1, niter=256):
                     break
                 z = z**2 + c
 
-            color = (i << 21) + (i << 10)  + i * 8
+            color = i
             pixels[y - startRow,x] = color
     return pixels
 
@@ -48,7 +48,7 @@ class Worker:
         zk.DataWatch(self.statusPath, self.onAssignChange)   
     
     # do something upon the change on assignment
-    def onAssignChange(self, taskID, stat):
+    def onAssignChange(self, taskID, stat, event=None):
         if taskID is not None and taskID.decode("utf-8") != "non":
             taskID = taskID.decode("utf-8")
             logging.info("Worker recieved task %s" % taskID) 

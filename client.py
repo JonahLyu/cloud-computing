@@ -58,12 +58,13 @@ print("create: %s" % newResultPath)
 
 sliceNum = int(input("enter number of slices to deploy: "))
 zoom = float(input("enter zoom (float value): "))
-
+if sliceNum > height:
+    sliceNum = height
 
 def generateTask(sliceNum, width,height, zoom):
     global pixels
     allTasks = []
-    pixels = np.arange(width*height, dtype=np.uint16).reshape(height, width)
+    pixels = np.arange(width*height, dtype=np.uint8).reshape(height, width)
     for i in range(sliceNum):
         startRow = (height // sliceNum) * i
         if i == sliceNum - 1:
@@ -102,13 +103,13 @@ print("download image...")
 count = 0
 for (resultPath, startRow, endRow) in allTasks: 
     data, _ = zk.get(resultPath)
-    pixelSlice = np.frombuffer(data, dtype=np.uint16).reshape(endRow-startRow,width)
+    pixelSlice = np.frombuffer(data, dtype=np.uint8).reshape(endRow-startRow,width)
     pixels[startRow:endRow] = pixelSlice
     count += 1
     print("download progress: %d/%d" % (count, sliceNum))
 plt.axis('off')
 plt.imshow(pixels)
-plt.savefig("result.png")
+plt.savefig(f'result_zoom_{zoom}.png')
 print("image saved as result.png")
 input("enter to quit: ")
 zk.stop()

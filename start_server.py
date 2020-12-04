@@ -1,7 +1,7 @@
 import yaml, time
 
 MASTER_NUM_ON_EACH_NODE = 1
-WORKER_NUM_ON_EACH_NODE = 3
+WORKER_NUM_ON_EACH_NODE = 2
 
 with open('config.yaml') as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
