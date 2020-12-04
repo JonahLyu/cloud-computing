@@ -14,10 +14,13 @@ Lyu Jonah (jl17031)
 
 # Mandelbrot Set APP guide
 
-**Launch the server**
+**Launch the master and worker server**
 ```
-make start
+python start_server.py master
+python start_server.py worker
 ```
+
+edit following lines in `start_server.py` to scale up/down:
 
 ```python
 MASTER_NUM_ON_EACH_NODE = 1
@@ -31,6 +34,7 @@ make client
 ```
 
 example input
+
 ```
 enter number of slices to deploy: 9
 enter zoom (float value): 200
@@ -38,6 +42,9 @@ enter zoom (float value): 200
 ![result_zoom_200}](/png/result_zoom_2000.0.png)
 
 **Stop the server**
+
+This will kill both master and worker servers
+
 ```
 make stop
 ```
