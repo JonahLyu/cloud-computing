@@ -1,9 +1,7 @@
 from kazoo.client import KazooClient
-import time, uuid, signal,sys
+import time, uuid, signal,sys,yaml
 import numpy as np
 import matplotlib.pyplot as plt
-
-import yaml
 
 ELECTION_PATH="/master"
 TASKS_PATH="/tasks"

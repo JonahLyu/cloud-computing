@@ -1,8 +1,4 @@
-.PHONY: start master worker client election init query
-
-# start the app server in zk cluster
-start:
-	python start_server.py
+.PHONY: master worker client election init query
 
 # stop the app server in zk cluster
 stop:

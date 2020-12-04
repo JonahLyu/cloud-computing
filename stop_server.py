@@ -1,6 +1,7 @@
 import yaml
 from fabric import Connection
 
+print("Try to stop all master and worker servers...")
 with open('config.yaml') as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
@@ -23,5 +24,11 @@ for idx in range(1, instance_count + 1):
     c = Connection(f'ubuntu@{pub_ip}', connect_kwargs={'key_filename': config['ssh_path']})
     c.sudo('''kill -9 $(sudo lsof -i:2181 | grep python | awk '{print $2}')''', warn=True, hide=True)
 
+# clean the status of all workers
+zk.delete("/status", recursive=True)
+# clean all tasks
+zk.delete("/tasks", recursive=True)
+# clean all results
+zk.delete("/results", recursive=True)
 input('wait to quit')
 zk.stop()

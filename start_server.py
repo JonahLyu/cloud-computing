@@ -1,7 +1,19 @@
-import yaml, time
+import yaml, time, sys
 
 MASTER_NUM_ON_EACH_NODE = 1
 WORKER_NUM_ON_EACH_NODE = 2
+
+# check argument
+if len(sys.argv) < 2:
+    print("Usage: python start_server.py master/worker")
+    sys.exit(0)
+elif sys.argv[1] == 'master':
+    print(f"Try to launch {MASTER_NUM_ON_EACH_NODE} master(s) on each node")
+elif sys.argv[1] == 'worker':
+    print(f"Try to launch {WORKER_NUM_ON_EACH_NODE} worker(s) on each node")
+else:
+    print("Usage: python start_server.py master/worker")
+    sys.exit(0)
 
 with open('config.yaml') as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
@@ -31,23 +43,27 @@ def watch_worker(workers):
 # watch the master status
 @zk.ChildrenWatch("/master")
 def watch_master(masters):
-    masterNum = len(masters)
+    masterNum = len(masters) - 1 # ignore child /current_master
     print("current master num: %d" % masterNum)
 
 # kill all worker and master
-print("kill the server...")
+print(f"kill all old {sys.argv[1]} servers...")
 for idx in range(1, instance_count + 1):
     ip_pair = hosts[idx - 1]
     pub_ip = ip_pair[0]
     print (f'connecting to {pub_ip}')
     c = Connection(f'ubuntu@{pub_ip}', connect_kwargs={'key_filename': config['ssh_path']})
-    c.sudo('''kill -9 $(sudo lsof -i:2181 | grep python | awk '{print $2}')''', warn=True, hide=True)
+    if sys.argv[1] == "worker":
+        c.sudo('''kill -9 $( ps -ef | grep 'server.py worker' | awk '{print $2}')''', warn=True, hide=True)
+    if sys.argv[1] == "master":
+        c.sudo('''kill -9 $( ps -ef | grep 'server.py master' | awk '{print $2}')''', warn=True, hide=True)
 
-while masterNum > 1:
-    time.sleep(1)
+if sys.argv[1] == "master":
+    while masterNum > 1:
+        time.sleep(1)
 
 # launch the server
-print("launch the server...")
+print(f"launch new {sys.argv[1]} server...")
 for idx in range(1, instance_count + 1):
     ip_pair = hosts[idx - 1]
     pub_ip = ip_pair[0]
@@ -60,10 +76,12 @@ for idx in range(1, instance_count + 1):
     c.put(local="./app/server.py", remote="/home/ubuntu/app/server.py")
     c.put(local="./app/worker.py", remote="/home/ubuntu/app/worker.py")
     c.put(local="./app/master.py", remote="/home/ubuntu/app/master.py")
-    for i in range(MASTER_NUM_ON_EACH_NODE):
-        c.sudo(f'python /home/ubuntu/app/server.py master 2>/home/ubuntu/app/log/master_{i}.log >/dev/null &', warn=True, asynchronous=True)
-    for i in range(WORKER_NUM_ON_EACH_NODE):
-        c.sudo(f'python /home/ubuntu/app/server.py worker 2>/home/ubuntu/app/log/worker_{i}.log >/dev/null &', warn=True, asynchronous=True)
+    if sys.argv[1] == "master":
+        for i in range(MASTER_NUM_ON_EACH_NODE):
+            c.sudo(f'python /home/ubuntu/app/server.py master 2>/home/ubuntu/app/log/master_{i}.log >/dev/null &', warn=True, asynchronous=True)
+    if sys.argv[1] == "worker":
+        for i in range(WORKER_NUM_ON_EACH_NODE):
+            c.sudo(f'python /home/ubuntu/app/server.py worker 2>/home/ubuntu/app/log/worker_{i}.log >/dev/null &', warn=True, asynchronous=True)
 
 
 input('wait to quit')
