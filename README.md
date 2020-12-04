@@ -1,6 +1,18 @@
 # CW20-20
 Lyu Jonah (jl17031)
 
+# Configure Instances
+
+## Prerequisites
+
+- [ ] python >3.6
+- [ ] AWS ssh key configured
+- [ ] edit `config.yaml` to declare nodes Public/Privat IP
+
+### Setup Python Dependencies
+- [ ] run `pip install -r requirements.txt`
+
+# Mandelbrot Set APP guide
 
 **Launch the server**
 ```
