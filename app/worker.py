@@ -47,7 +47,7 @@ class Worker:
         #3.watch znode
         zk.DataWatch(self.statusPath, self.onAssignChange)   
     
-    # do something upon the change on assignment
+    # worker received a task
     def onAssignChange(self, taskID, stat, event=None):
         if taskID is not None and taskID.decode("utf-8") != "non":
             taskID = taskID.decode("utf-8")

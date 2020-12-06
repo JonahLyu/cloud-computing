@@ -55,7 +55,7 @@ class Master:
                 taskStatus = taskStatus.decode("utf-8")
                 if ("assigned" not in taskStatus and "complete" not in taskStatus) : # not assigned
                     freeWorker = self.findFreeWorker()
-                    logging.info("Try to distribut %s to worker: %s" % (tasks[i], freeWorker))
+                    logging.info("Try to distribute %s to worker: %s" % (tasks[i], freeWorker))
                     if freeWorker is None :
                         logging.info("There is not any free worker now")
                         break
@@ -86,13 +86,15 @@ class Master:
                 # free all tasks of died worker
                 for diedWorker in diedWorkers:
                     data, _ = self.zk.get(f'{STATUS_PATH}/{diedWorker}')
-                    status = data.decode("utf-8")
-                    logging.info("Worker died %s with status: %s" % (diedWorker, status))
+                    taskID = data.decode("utf-8")
+                    logging.info("Worker died %s with status: %s" % (diedWorker, taskID))
                     #free the task assiged to this died worker
-                    if status != "non" and self.zk.exists(f'{TASKS_PATH}/{status}'): 
-                        self.zk.set(f'{TASKS_PATH}/{status}', b'non') 
+                    if taskID != "non" and self.zk.exists(f'{TASKS_PATH}/{taskID}'): 
+                        data, _ = self.zk.get(f'{TASKS_PATH}/{taskID}')
+                        clientID = data.decode("utf-8").split('#')[1]
+                        self.zk.set(f'{TASKS_PATH}/{taskID}', clientID.encode("utf-8")) 
                         self.zk.delete(f'{STATUS_PATH}/{diedWorker}') # delete the status of died worker
-                        logging.info("Task free: %s" % status)
+                        logging.info("Task free: %s" % taskID)
             self.workers = workers
             self.distributeTask(event=event)
     

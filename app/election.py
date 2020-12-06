@@ -45,11 +45,11 @@ class Election:
             logging.info ("I am master now") 
             return True
         else:
-            # this is a worker, watch the master delete event
+            # this is a master backup, watch the master delete event
             self.zk.exists(self.masterPath, self.onNodeDelete)
             self.isMaster = False
             logging.info ("Master is: %s" % (self.masterPath)) 
-            logging.info ("I am worker now") 
+            logging.info ("I am master backup now") 
             return False
 
 
