@@ -24,7 +24,7 @@ edit following lines in `start_server.py` to scale up/down:
 
 ```python
 MASTER_NUM_ON_EACH_NODE = 1
-WORKER_NUM_ON_EACH_NODE = 3
+WORKER_NUM = 6   # deploy uniformly on all nodes
 ```
 
 

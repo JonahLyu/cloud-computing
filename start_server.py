@@ -1,7 +1,7 @@
 import yaml, time, sys
 
 MASTER_NUM_ON_EACH_NODE = 1
-WORKER_NUM_ON_EACH_NODE = 2
+WORKER_NUM = 1
 
 # check argument
 if len(sys.argv) < 2:
@@ -10,7 +10,7 @@ if len(sys.argv) < 2:
 elif sys.argv[1] == 'master':
     print(f"Try to launch {MASTER_NUM_ON_EACH_NODE} master(s) on each node")
 elif sys.argv[1] == 'worker':
-    print(f"Try to launch {WORKER_NUM_ON_EACH_NODE} worker(s) on each node")
+    print(f"Try to launch {WORKER_NUM} worker(s)")
 else:
     print("Usage: python start_server.py master/worker")
     sys.exit(0)
@@ -72,14 +72,24 @@ for idx in range(1, instance_count + 1):
     c.run("mkdir -p /home/ubuntu/app")
     c.run("mkdir -p /home/ubuntu/app/log")
     c.put(local="./app/utils.py", remote="/home/ubuntu/app/utils.py")
-    c.put(local="./app/election.py", remote="/home/ubuntu/app/election.py")
     c.put(local="./app/server.py", remote="/home/ubuntu/app/server.py")
-    c.put(local="./app/worker.py", remote="/home/ubuntu/app/worker.py")
-    c.put(local="./app/master.py", remote="/home/ubuntu/app/master.py")
+    
     if sys.argv[1] == "master":
+        c.put(local="./app/election.py", remote="/home/ubuntu/app/election.py")
+        c.put(local="./app/master.py", remote="/home/ubuntu/app/master.py")
         for i in range(MASTER_NUM_ON_EACH_NODE):
             c.sudo(f'python /home/ubuntu/app/server.py master 2>/home/ubuntu/app/log/master_{i}.log >/dev/null &', warn=True, asynchronous=True)
     if sys.argv[1] == "worker":
+        c.put(local="./app/worker.py", remote="/home/ubuntu/app/worker.py")
+        # deploy worker uniformly on all nodes
+        m = WORKER_NUM % instance_count
+        n = WORKER_NUM // instance_count
+        if m == 0:
+            WORKER_NUM_ON_EACH_NODE = n
+        elif idx <= m:
+            WORKER_NUM_ON_EACH_NODE = n + 1
+        else:
+            WORKER_NUM_ON_EACH_NODE = n
         for i in range(WORKER_NUM_ON_EACH_NODE):
             c.sudo(f'python /home/ubuntu/app/server.py worker 2>/home/ubuntu/app/log/worker_{i}.log >/dev/null &', warn=True, asynchronous=True)
 
