@@ -15,6 +15,9 @@ Lyu Jonah (jl17031)
 # Mandelbrot Set APP guide
 
 **Launch the master and worker server**
+
+The following scripts will stop all old servers and redeploy
+
 ```
 python start_server.py master
 python start_server.py worker
@@ -27,6 +30,12 @@ MASTER_NUM_ON_EACH_NODE = 1
 WORKER_NUM = 6   # deploy uniformly on all nodes
 ```
 
+You can also manually launch a master or worker without stopping the existing servers by following command:
+
+```shell
+make master
+make worker
+```
 
 **Launch the client**
 ```
