@@ -14,9 +14,25 @@ Lyu Jonah (jl17031)
 
 # Mandelbrot Set APP guide
 
+**Launch the client**
+The servers have been deployed already, so the quickest way to learn about what the app does is launching a client:
+
+```
+make client
+```
+
+example input
+
+```
+enter number of slices to deploy: 9
+enter zoom (float value): 200
+```
+![result_zoom_200}](/png/result_zoom_2000.0.png)
+
+
 **Launch the master and worker server**
 
-The following scripts will stop all old servers and redeploy
+The following scripts will stop all old servers and redeploy them
 
 ```
 python start_server.py master
@@ -37,18 +53,6 @@ make master
 make worker
 ```
 
-**Launch the client**
-```
-make client
-```
-
-example input
-
-```
-enter number of slices to deploy: 9
-enter zoom (float value): 200
-```
-![result_zoom_200}](/png/result_zoom_2000.0.png)
 
 **Stop the server**
 
