@@ -15,6 +15,7 @@ Lyu Jonah (jl17031)
 # Mandelbrot Set APP guide
 
 **Launch the client**
+
 The servers have been deployed already, so the quickest way to learn about what the app does is launching a client:
 
 ```
