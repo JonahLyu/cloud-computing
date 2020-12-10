@@ -1,7 +1,7 @@
 import yaml, time, sys
 
 MASTER_NUM_ON_EACH_NODE = 1
-WORKER_NUM = 1
+WORKER_NUM = 9
 
 # check argument
 if len(sys.argv) < 2:

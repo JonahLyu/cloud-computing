@@ -8,7 +8,7 @@ WORKERS_PATH="/workers"
 STATUS_PATH="/status"
 RESULTS_PATH="/results"
 
-
+# the core mandelbrotSet function
 def mandelbrotSet(width, height, startRow, endRow, zoom=1, niter=256):
     w,h = width, height
     pixels = np.arange(w*(endRow - startRow), dtype=np.uint8).reshape(endRow - startRow, w)

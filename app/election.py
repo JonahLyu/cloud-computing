@@ -66,4 +66,4 @@ if __name__ == '__main__':
 
     while (election.killNow == False) :
         time.sleep(1)
-    logging.info("I was killed gracefully")
+    logging.info("This master server was killed")

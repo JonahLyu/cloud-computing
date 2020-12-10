@@ -10,6 +10,7 @@ RESULTS_PATH="/results"
 STATUS_PATH="/status"
 CLIENT_PATH="/clients"
 
+# init all path, ensure all basic path created before a client connects
 def init(path='local'):
     logging.basicConfig(format='%(asctime)s %(message)s',level=logging.INFO)
     if path == 'local':
