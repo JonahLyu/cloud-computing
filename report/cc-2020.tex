@@ -179,7 +179,7 @@ Number of Workers & Time cost of task in seconds \\ \hline
 \label{default}
 \end{table}%
 
-The table clearly shows the benefits of the scaling up the worker servers. In the case of one worker, only one node is doing the computation. Two workers bring an obvious improvement on the speed. The time decreasing is less obvious with more workers. It brings more communication between master and worker to sync each task status, therefore, more time cost.
+The table clearly shows the benefits of scaling up the worker servers. In the case of one worker, only one node is doing the computation. Two workers bring an obvious improvement on the speed. The time decreasing is less obvious with more workers. It brings more communication between master and worker to sync each task status, therefore, more time cost.
 
 \section{Fault Tolerant}
 
@@ -192,7 +192,7 @@ The previous implementation section shows how the whole system is established. I
 \end{enumerate}
 
 \subsection{Test 1 master fails - \emph{2M:2W:1C} to \emph{1M:2W:1C}}
-This experiment will test the fail of the current master when a client is connecting to it.  An interrupt signal will stop the current master while it is on the halfway of a client task.
+This experiment will test the fail of the current master when a client is connecting to it.  An interrupt signal will stop the current master while it is in the halfway of a client task.
 \begin{verbatim}
 ----------
 python ./app/master.py   # master 1
@@ -231,7 +231,7 @@ enter number of slices to deploy: 10
 task progress: 1/10
 task progress: 2/10
 1 workers. # one of the worker dies
-task progress: 3/10. # the task is still going running
+task progress: 3/10. # the task is still running
 task progress: 4/10
 ...
 ----------
@@ -245,7 +245,7 @@ Try to distribute 1_0000000429 to worker: 9a928e11
 ----------
 \end{verbatim}
 
-The output shows there is no effect when one of the workers dies. This is because the master will free the assigned task from the died worker and assign it to a new worker.
+The output shows there is no effect when one of the workers dies. This is because the master will free the assigned task from the died worker and assign it to a new worker. Therefore, the application can tolerate this scenarios.
 
 \subsection{Test all worker fails - \emph{2M:2W:1C} to \emph{2M:0W:1C}}
 This experiment will test the fail of all workers when they are processing a client's task. All workers are stopped by an interrupt signal. Then I will launch a new worker to see if a client task can be recovered.
@@ -269,9 +269,9 @@ task progress: 3/10
 ...
 ----------
 \end{verbatim}
-The output shows a client will wait if all workers die and it can be recovered when at least one worker relaunched.
+The output shows a client will wait if all workers die and it can be recovered when at least one worker is relaunched.
 
-All experiments have proved that this cloud application is resilient to various fault scenarios. With the larger scale of server deployments, the service will become more stable and highly available. There are three highlights in the design of the system to ensure its fault-tolerant feature:
+All experiments have proved that this cloud application is resilient to various fault scenarios. With the larger scale of server deployments, the service will become more stable and highly available. There are four highlights in the design of the system to ensure its fault-tolerant feature:
 
 \begin{enumerate}
 \item Election -  to ensure there is always a master working.
